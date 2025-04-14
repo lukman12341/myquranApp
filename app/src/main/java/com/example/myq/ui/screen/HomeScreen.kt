@@ -21,7 +21,6 @@ import com.example.myq.viewmodel.SurahViewModel
 import com.example.myq.ui.screen.SettingsDialog
 import com.example.myq.ui.theme.ThemeState
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = viewModel()) {
@@ -30,8 +29,7 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
     var isSearching by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var showSettingsDialog by remember { mutableStateOf(false) }
-    val isDarkTheme = ThemeState.isDarkTheme // Tambahkan ini untuk mengamati perubahan tema
-
+    val isDarkTheme = ThemeState.isDarkTheme
 
     val surahList by viewModel.surahList.collectAsState()
 
@@ -48,7 +46,6 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
         viewModel.fetchSurahList()
     }
 
-    // Gunakan MaterialTheme dengan colorScheme yang sesuai
     MaterialTheme(
         colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
     ) {
@@ -115,24 +112,13 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
                 }
 
                 when (selectedTabIndex) {
-                    0 -> TabContentSurah(navController, filteredList)
-                    1 -> Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Fitur Juz belum tersedia")
-                    }
-                    2 -> Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Bookmark belum tersedia")
-                    }
+                    0 -> SurahListScreen(navController, filteredList)
+                    1 -> JuzListScreen(navController)
+                    2 -> BookmarkPlaceholderScreen()
                 }
             }
         }
 
-        // Settings Dialog
         SettingsDialog(
             showDialog = showSettingsDialog,
             currentLanguage = "id",
@@ -147,50 +133,63 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
 }
 
 @Composable
-fun TabContentSurah(navController: NavHostController, surahList: List<Surah>) {
+private fun SurahListScreen(navController: NavHostController, surahList: List<Surah>) {
     LazyColumn {
         items(surahList) { surah ->
-            Card(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .clickable {
-                        navController.navigate("surahDetail/${surah.number}")
-                    },
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                ListItem(
-                    headlineContent = {
-                        Column {
-                            Text(
-                                text = surah.name,
-                                style = MaterialTheme.typography.titleLarge,
-                                textAlign = TextAlign.End,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Text(
-                                text = surah.englishName,
-                                style = MaterialTheme.typography.titleMedium,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    },
-                    supportingContent = {
-                        Text(
-                            text = "${surah.englishNameTranslation} - ${surah.revelationType}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    },
-                    trailingContent = {
-                        Text(
-                            text = "${surah.numberOfAyahs} ayat",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    },
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
+            SurahItem(navController, surah)
         }
+    }
+}
+
+@Composable
+private fun SurahItem(navController: NavHostController, surah: Surah) {
+    Card(
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { navController.navigate("surahDetail/${surah.number}") },
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        ListItem(
+            headlineContent = {
+                Column {
+                    Text(
+                        text = surah.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = surah.englishName,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            supportingContent = {
+                Text(
+                    text = "${surah.englishNameTranslation} - ${surah.revelationType}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            trailingContent = {
+                Text(
+                    text = "${surah.numberOfAyahs} ayat",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
+private fun BookmarkPlaceholderScreen() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("Bookmark belum tersedia")
     }
 }

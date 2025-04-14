@@ -1,7 +1,9 @@
 package com.example.myq.data.model
 
 data class SurahResponse(
-    val data: List<Surah>
+    val data: List<Surah>,
+    val code: Int,
+    val status: String
 )
 
 data class Surah(

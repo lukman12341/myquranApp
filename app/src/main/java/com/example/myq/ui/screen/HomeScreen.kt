@@ -1,18 +1,15 @@
 package com.example.myq.ui.screen
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,29 +18,104 @@ import androidx.navigation.NavHostController
 import com.example.myq.data.model.Surah
 import com.example.myq.viewmodel.SurahViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = viewModel()) {
+    val tabTitles = listOf("SURAH", "JUZ", "BOOKMARK")
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    var isSearching by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+
     val surahList by viewModel.surahList.collectAsState()
 
-    // Ambil list surah ketika pertama kali tampil
+    // Filter list sesuai query pencarian
+    val filteredList = if (searchQuery.isEmpty()) {
+        surahList
+    } else {
+        surahList.filter {
+            it.englishName.contains(searchQuery, ignoreCase = true) ||
+                    it.name.contains(searchQuery)
+        }
+    }
+
+    // Panggil API saat pertama kali
     LaunchedEffect(Unit) {
         viewModel.fetchSurahList()
     }
 
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    if (isSearching) {
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Cari surah...") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text("Al-Qur'an Indonesia")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        if (isSearching) searchQuery = ""
+                        isSearching = !isSearching
+                    }) {
+                        Icon(
+                            imageVector = if (isSearching) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = "Search"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues)) {
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title) }
+                    )
+                }
+            }
+
+            when (selectedTabIndex) {
+                0 -> TabContentSurah(navController, filteredList)
+                1 -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Fitur Juz belum tersedia")
+                }
+                2 -> Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Bookmark belum tersedia")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TabContentSurah(navController: NavHostController, surahList: List<Surah>) {
     LazyColumn {
         items(surahList) { surah ->
             ListItem(
                 headlineContent = {
-                    // Tampilkan nama surah dalam bahasa Arab dan Latin secara berurutan
                     Column {
-                        // Nama surah dalam Bahasa Arab (right aligned)
                         Text(
                             text = surah.name,
                             style = MaterialTheme.typography.titleLarge,
                             textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth()
                         )
-                        // Nama surah dalam Bahasa Latin
                         Text(
                             text = surah.englishName,
                             style = MaterialTheme.typography.titleMedium,
@@ -52,11 +124,9 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
                     }
                 },
                 supportingContent = {
-                    // Tampilkan arti/terjemahan dan tipe wahyu
                     Text(text = "${surah.englishNameTranslation} - ${surah.revelationType}")
                 },
                 trailingContent = {
-                    // Tampilkan jumlah ayat
                     Text(text = "${surah.numberOfAyahs} ayat")
                 },
                 modifier = Modifier

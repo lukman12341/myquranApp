@@ -21,7 +21,8 @@ class QuranViewModel : ViewModel() {
     private fun fetchSurahs() {
         viewModelScope.launch {
             try {
-                val response = RetrofitInstance.api.getSurahs()
+                val response = RetrofitInstance.apiService.getSurahList().data
+
                 _surahs.value = response
                 Log.d("QuranViewModel", "Data Surah: $response")  // Cek data yang diterima
             } catch (e: Exception) {

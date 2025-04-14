@@ -19,4 +19,6 @@ interface ApiService {
     // ✅ Ambil terjemahan surah (https://api.alquran.cloud/v1/surah/1/id.indonesian)
     @GET("v1/surah/{surahNumber}/id.indonesian")
     suspend fun getSurahTranslation(@Path("surahNumber") surahNumber: Int): TranslationResponse
+
+
 }

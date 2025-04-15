@@ -32,6 +32,12 @@ class SurahViewModel : ViewModel() {
     val currentAyah: StateFlow<Int?> = _currentAyah
 
     private var mediaPlayer: MediaPlayer? = null
+    private var currentSurahNumber: Int? = null
+    private var ayahQueue: List<String> = emptyList()
+    private var currentAyahIndex: Int = 0
+
+    // Flag untuk membedakan mode pemutaran surah penuh dan per ayat
+    private var isSurahPlaying: Boolean = false
 
     fun fetchSurahList() {
         viewModelScope.launch {
@@ -45,38 +51,35 @@ class SurahViewModel : ViewModel() {
         }
     }
 
-    fun fetchSurahDetail(surahNumber: Int) {
+    fun fetchSurahData(surahNumber: Int) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.apiService.getSurahDetail(surahNumber)
-                _ayahList.value = response.data.ayahs
-            } catch (e: Exception) {
-                Log.e("SurahViewModel", "Error fetching surah detail", e)
-                _ayahList.value = emptyList()
-            }
-        }
-    }
+                Log.d("SurahViewModel", "Fetching data for surah $surahNumber")
+                // Panggil fetchSurahAudio terlebih dahulu untuk memastikan audio tersedia
+                val audioResponse = ApiClient.apiService.getSurahAudio(surahNumber)
+                Log.d("SurahViewModel", "Audio response: ${audioResponse.data.ayahs}")
+                val audioAyahs = audioResponse.data.ayahs.associateBy { it.number }
 
-    fun fetchSurahTranslation(surahNumber: Int) {
-        viewModelScope.launch {
-            try {
-                val response = ApiClient.apiService.getSurahTranslation(surahNumber)
-                _translationList.value = response.data.ayahs
+                // Kemudian ambil detail surah
+                val detailResponse = ApiClient.apiService.getSurahDetail(surahNumber)
+                val newAyahs = detailResponse.data.ayahs.map { detailAyah ->
+                    val audioAyah = audioAyahs[detailAyah.number]
+                    Ayah(
+                        number = detailAyah.number,
+                        text = detailAyah.text,
+                        audio = audioAyah?.audio
+                    )
+                }
+                _ayahList.value = newAyahs
+                Log.d("SurahViewModel", "Fetched ayahs for surah $surahNumber: ${newAyahs.map { it.audio }}")
+
+                // Terakhir, ambil terjemahan
+                val translationResponse = ApiClient.apiService.getSurahTranslation(surahNumber)
+                _translationList.value = translationResponse.data.ayahs
             } catch (e: Exception) {
-                Log.e("SurahViewModel", "Error fetching translation", e)
+                Log.e("SurahViewModel", "Error fetching surah data: ${e.message}")
+                _ayahList.value = emptyList()
                 _translationList.value = emptyList()
-            }
-        }
-    }
-
-    fun fetchSurahAudio(surahNumber: Int) {
-        viewModelScope.launch {
-            try {
-                val response = ApiClient.apiService.getSurahAudio(surahNumber)
-                _ayahList.value = response.data.ayahs
-            } catch (e: Exception) {
-                Log.e("SurahViewModel", "Error fetching audio", e)
-                _ayahList.value = emptyList()
             }
         }
     }
@@ -84,28 +87,57 @@ class SurahViewModel : ViewModel() {
     fun playAudio(audioUrl: String?, ayahNumber: Int? = null) {
         viewModelScope.launch {
             if (audioUrl.isNullOrEmpty()) {
-                Log.e("SurahViewModel", "Audio URL is null or empty")
+                Log.e("SurahViewModel", "Audio URL is null or empty for ayah $ayahNumber")
                 return@launch
             }
-            stopAudio() // Stop any existing playback
+            // Jika sedang dalam mode surah dan chaining (ayahNumber == null),
+            // cukup lepas mediaPlayer tanpa mereset antrian
+            if (!(isSurahPlaying && ayahNumber == null)) {
+                stopAudio() // Untuk mode individual, reset state terlebih dahulu
+            } else {
+                mediaPlayer?.let {
+                    try {
+                        if (it.isPlaying) it.stop()
+                        it.reset()
+                        it.release()
+                    } catch (e: Exception) {
+                        Log.e("SurahViewModel", "Error releasing mediaPlayer: ${e.message}")
+                    }
+                }
+                mediaPlayer = null
+            }
             try {
+                Log.d("SurahViewModel", "Preparing MediaPlayer for audio: $audioUrl, ayah: $ayahNumber")
                 mediaPlayer = MediaPlayer().apply {
                     setDataSource(audioUrl)
-                    prepare()
-                    start()
-                    _isPlaying.value = true
-                    _currentAyah.value = ayahNumber
+                    setOnPreparedListener {
+                        Log.d("SurahViewModel", "MediaPlayer prepared for audio: $audioUrl")
+                        start()
+                        _isPlaying.value = true
+                        _currentAyah.value = ayahNumber
+                    }
                     setOnCompletionListener {
-                        stopAudio()
+                        Log.d("SurahViewModel", "Audio completed for ayah $ayahNumber, currentAyahIndex: $currentAyahIndex, queueSize: ${ayahQueue.size}")
+                        // Jika mode surah aktif dan masih ada audio berikutnya, lanjutkan chaining
+                        if (isSurahPlaying && currentAyahIndex < ayahQueue.size - 1) {
+                            currentAyahIndex++
+                            Log.d("SurahViewModel", "Playing next ayah in queue: ${ayahQueue[currentAyahIndex]}")
+                            playAudio(ayahQueue[currentAyahIndex], null)
+                        } else {
+                            Log.d("SurahViewModel", "No more ayahs to play or non-surah mode, stopping")
+                            isSurahPlaying = false
+                            stopAudio()
+                        }
                     }
                     setOnErrorListener { _, what, extra ->
-                        Log.e("SurahViewModel", "MediaPlayer error: what=$what, extra=$extra")
+                        Log.e("SurahViewModel", "MediaPlayer error for ayah $ayahNumber: what=$what, extra=$extra")
                         stopAudio()
                         true
                     }
+                    prepareAsync()
                 }
             } catch (e: Exception) {
-                Log.e("SurahViewModel", "Error playing audio", e)
+                Log.e("SurahViewModel", "Error preparing audio for ayah $ayahNumber: ${e.message}")
                 _isPlaying.value = false
                 _currentAyah.value = null
             }
@@ -115,15 +147,27 @@ class SurahViewModel : ViewModel() {
     fun playSurahAudio(surahNumber: Int) {
         viewModelScope.launch {
             try {
-                val response = ApiClient.apiService.getSurahAudio(surahNumber)
-                val surahAudio = response.data.ayahs.firstOrNull()?.audio?.replace(Regex("\\d+\\.mp3$"), ".mp3")
-                if (surahAudio.isNullOrEmpty()) {
-                    Log.e("SurahViewModel", "Surah audio URL is null or empty")
+                Log.d("SurahViewModel", "Starting playSurahAudio for surah $surahNumber")
+                isSurahPlaying = true // Aktifkan mode surah
+                val ayahs = _ayahList.value
+                if (ayahs.isEmpty()) {
+                    Log.e("SurahViewModel", "No ayahs found for surah $surahNumber")
                     return@launch
                 }
-                playAudio(surahAudio, null)
+                ayahQueue = ayahs.mapNotNull { it.audio }
+                currentAyahIndex = 0
+                currentSurahNumber = surahNumber
+                Log.d("SurahViewModel", "Ayah queue: $ayahQueue")
+                if (ayahQueue.isNotEmpty()) {
+                    playAudio(ayahQueue[0], null)
+                } else {
+                    Log.e("SurahViewModel", "No audio URLs found for surah $surahNumber")
+                }
             } catch (e: Exception) {
-                Log.e("SurahViewModel", "Error fetching surah audio", e)
+                Log.e("SurahViewModel", "Error in playSurahAudio: ${e.message}")
+                _isPlaying.value = false
+                _currentAyah.value = null
+                isSurahPlaying = false
             }
         }
     }
@@ -132,10 +176,11 @@ class SurahViewModel : ViewModel() {
         mediaPlayer?.let {
             if (it.isPlaying) {
                 try {
+                    Log.d("SurahViewModel", "Pausing audio")
                     it.pause()
                     _isPlaying.value = false
                 } catch (e: IllegalStateException) {
-                    Log.e("SurahViewModel", "Error pausing audio", e)
+                    Log.e("SurahViewModel", "Error pausing audio: ${e.message}")
                 }
             }
         } ?: run {
@@ -148,10 +193,11 @@ class SurahViewModel : ViewModel() {
         mediaPlayer?.let {
             if (!it.isPlaying) {
                 try {
+                    Log.d("SurahViewModel", "Resuming audio")
                     it.start()
                     _isPlaying.value = true
                 } catch (e: IllegalStateException) {
-                    Log.e("SurahViewModel", "Error resuming audio", e)
+                    Log.e("SurahViewModel", "Error resuming audio: ${e.message}")
                 }
             }
         } ?: run {
@@ -162,18 +208,24 @@ class SurahViewModel : ViewModel() {
     fun stopAudio() {
         mediaPlayer?.let {
             try {
+                Log.d("SurahViewModel", "Stopping audio")
                 if (it.isPlaying) {
                     it.stop()
                 }
                 it.reset()
                 it.release()
             } catch (e: IllegalStateException) {
-                Log.e("SurahViewModel", "Error stopping audio", e)
+                Log.e("SurahViewModel", "Error stopping audio: ${e.message}")
             }
         }
         mediaPlayer = null
         _isPlaying.value = false
         _currentAyah.value = null
+        currentSurahNumber = null
+        ayahQueue = emptyList()
+        currentAyahIndex = 0
+        isSurahPlaying = false // Reset flag mode surah
+        Log.d("SurahViewModel", "Audio stopped, state reset")
     }
 
     override fun onCleared() {

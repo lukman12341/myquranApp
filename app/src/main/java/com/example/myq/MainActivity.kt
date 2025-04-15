@@ -1,3 +1,4 @@
+package com.example.myq
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +9,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.myq.ui.navigation.NavGraph
 import com.example.myq.ui.theme.ThemeState // import ini
 
-// MainActivity
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

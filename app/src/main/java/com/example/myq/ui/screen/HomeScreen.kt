@@ -1,10 +1,11 @@
 package com.example.myq.ui.screen
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -29,12 +31,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.myq.data.model.Surah
 import com.example.myq.ui.theme.FontSettings
 import com.example.myq.ui.theme.ThemeState
 import com.example.myq.viewmodel.SurahViewModel
+import kotlinx.coroutines.delay
+import com.example.myq.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +52,7 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
     val isDarkTheme = ThemeState.isDarkTheme
 
     val surahList by viewModel.surahList.collectAsState()
+    var showSplash by remember { mutableStateOf(true) }
 
     val filteredList = if (searchQuery.isEmpty()) {
         surahList
@@ -59,158 +65,260 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
 
     LaunchedEffect(Unit) {
         viewModel.fetchSurahList()
+        // Tampilkan splash screen selama 2 detik
+        delay(2000)
+        showSplash = false
     }
 
     MaterialTheme(
         colorScheme = if (isDarkTheme) darkColorScheme() else lightColorScheme()
     ) {
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.primaryContainer
+        if (showSplash) {
+            SplashContent()
+        } else {
+            Scaffold(
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = Color.Transparent,
+                            titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    )
                                 )
                             )
-                        )
-                        .shadow(4.dp),
-                    title = {
-                        if (isSearching) {
-                            OutlinedTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                placeholder = {
+                            .shadow(4.dp),
+                        title = {
+                            if (isSearching) {
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    placeholder = {
+                                        Text(
+                                            "Cari surah...",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontSize = 16.sp
+                                        )
+                                    },
+                                    singleLine = true,
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.85f)
+                                        .clip(RoundedCornerShape(24.dp)),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        cursorColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                    trailingIcon = {
+                                        IconButton(onClick = { searchQuery = ""; isSearching = false }) {
+                                            Icon(
+                                                Icons.Default.Close,
+                                                contentDescription = "Tutup Pencarian",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                )
+                            } else {
+                                Text(
+                                    "Al-Qur'an Indonesia",
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 24.sp
+                                    )
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { isSearching = !isSearching }) {
+                                Icon(
+                                    imageVector = if (isSearching) Icons.Default.Close else Icons.Default.Search,
+                                    contentDescription = if (isSearching) "Tutup Pencarian" else "Cari Surah",
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                            IconButton(onClick = { showSettingsDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Pengaturan",
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    )
+                }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .padding(paddingValues)
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    TabRow(
+                        selectedTabIndex = selectedTabIndex,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        indicator = { tabPositions ->
+                            TabRowDefaults.Indicator(
+                                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                                color = MaterialTheme.colorScheme.primary,
+                                height = 3.dp
+                            )
+                        },
+                        modifier = Modifier.shadow(2.dp)
+                    ) {
+                        tabTitles.forEachIndexed { index, title ->
+                            Tab(
+                                selected = selectedTabIndex == index,
+                                onClick = { selectedTabIndex = index },
+                                text = {
                                     Text(
-                                        "Cari surah...",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontSize = 16.sp
+                                        text = title,
+                                        fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 16.sp,
+                                        color = if (selectedTabIndex == index) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 },
-                                singleLine = true,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.85f)
-                                    .clip(RoundedCornerShape(24.dp)),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    cursorColor = MaterialTheme.colorScheme.primary
-                                ),
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                trailingIcon = {
-                                    IconButton(onClick = { searchQuery = ""; isSearching = false }) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = "Tutup Pencarian",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                },
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            )
-                        } else {
-                            Text(
-                                "Al-Qur'an Indonesia",
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 24.sp
-                                )
-                            )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { isSearching = !isSearching }) {
-                            Icon(
-                                imageVector = if (isSearching) Icons.Default.Close else Icons.Default.Search,
-                                contentDescription = if (isSearching) "Tutup Pencarian" else "Cari Surah",
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                        IconButton(onClick = { showSettingsDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Pengaturan",
-                                modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onPrimary
+                                modifier = Modifier.padding(vertical = 12.dp)
                             )
                         }
                     }
+
+                    when (selectedTabIndex) {
+                        0 -> SurahListScreen(navController, filteredList, FontSettings.translationFontSize, FontSettings.arabicFontSize)
+                        1 -> JuzListScreen(navController)
+                        2 -> BookmarkPlaceholderScreen()
+                    }
+                }
+            }
+
+            HomeSettingsDialog(
+                showDialog = showSettingsDialog,
+                currentLanguage = "id",
+                currentTheme = if (isDarkTheme) "dark" else "light",
+                currentTranslationFontSize = FontSettings.translationFontSize,
+                currentArabicFontSize = FontSettings.arabicFontSize,
+                onDismiss = { showSettingsDialog = false },
+                onConfirm = { lang, theme, transFontSize, arabFontSize ->
+                    ThemeState.toggleTheme(theme == "dark")
+                    FontSettings.translationFontSize = transFontSize
+                    FontSettings.arabicFontSize = arabFontSize
+                    showSettingsDialog = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SplashContent() {
+    // Animasi untuk fade-in dan skala
+    val alphaAnimation = remember { Animatable(0f) }
+    val scaleAnimation = remember { Animatable(0.5f) }
+
+    LaunchedEffect(Unit) {
+        // Animasi alpha dari 0 ke 1 untuk fade-in
+        alphaAnimation.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(
+                durationMillis = 800,
+                easing = LinearOutSlowInEasing
+            )
+        )
+        // Animasi skala dari 0.5 ke 1 untuk gambar
+        scaleAnimation.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.primaryContainer
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(24.dp)
+        ) {
+            // Gambar Al-Qur'an
+            Box(
+                modifier = Modifier
+                    .size(100.dp)
+                    .scale(scaleAnimation.value)
+                    .background(
+                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                        shape = MaterialTheme.shapes.medium
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.img),
+                    contentDescription = "Gambar Al-Qur'an",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
                 )
             }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.Indicator(
-                            modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                            color = MaterialTheme.colorScheme.primary,
-                            height = 3.dp
-                        )
-                    },
-                    modifier = Modifier.shadow(2.dp)
-                ) {
-                    tabTitles.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
-                            text = {
-                                Text(
-                                    text = title,
-                                    fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium,
-                                    fontSize = 16.sp,
-                                    color = if (selectedTabIndex == index) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
-                            modifier = Modifier.padding(vertical = 12.dp)
-                        )
-                    }
-                }
 
-                when (selectedTabIndex) {
-                    0 -> SurahListScreen(navController, filteredList, FontSettings.translationFontSize, FontSettings.arabicFontSize)
-                    1 -> JuzListScreen(navController)
-                    2 -> BookmarkPlaceholderScreen()
-                }
-            }
+            // Judul Aplikasi
+            Text(
+                text = "Al-Qur'an Indonesia",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 32.sp,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = alphaAnimation.value)
+                )
+            )
+
+            // Subjudul atau tagline
+            Text(
+                text = "Baca dan Pelajari Al-Qur'an",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = alphaAnimation.value * 0.7f)
+                )
+            )
         }
 
-        HomeSettingsDialog(
-            showDialog = showSettingsDialog,
-            currentLanguage = "id",
-            currentTheme = if (isDarkTheme) "dark" else "light",
-            currentTranslationFontSize = FontSettings.translationFontSize,
-            currentArabicFontSize = FontSettings.arabicFontSize,
-            onDismiss = { showSettingsDialog = false },
-            onConfirm = { lang, theme, transFontSize, arabFontSize ->
-                ThemeState.toggleTheme(theme == "dark")
-                FontSettings.translationFontSize = transFontSize
-                FontSettings.arabicFontSize = arabFontSize
-                showSettingsDialog = false
-            }
+        // Indikator pemuatan di bagian bawah
+        CircularProgressIndicator(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 48.dp),
+            color = MaterialTheme.colorScheme.onPrimary,
+            strokeWidth = 3.dp
         )
     }
 }
+
 @Composable
 private fun SurahListScreen(
     navController: NavHostController,
@@ -218,7 +326,7 @@ private fun SurahListScreen(
     translationFontSize: Float,
     arabicFontSize: Float
 ) {
-    if (surahList.isEmpty() && !isSystemInDarkTheme()) {
+    if (surahList.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -236,6 +344,7 @@ private fun SurahListScreen(
         }
     }
 }
+
 @Composable
 private fun SurahItem(
     navController: NavHostController,
@@ -313,7 +422,7 @@ private fun SurahItem(
                     Text(
                         text = surah.englishNameTranslation,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = translationFontSize.sp, // Gunakan ukuran huruf terjemahan
+                            fontSize = translationFontSize.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -324,7 +433,7 @@ private fun SurahItem(
                 Text(
                     text = surah.name,
                     style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = arabicFontSize.sp, // Gunakan ukuran huruf Arab
+                        fontSize = arabicFontSize.sp,
                         fontWeight = FontWeight.Medium
                     ),
                     textAlign = TextAlign.End,
@@ -344,11 +453,12 @@ private fun SurahItem(
 
     LaunchedEffect(isPressed) {
         if (isPressed) {
-            kotlinx.coroutines.delay(200)
+            delay(200)
             isPressed = false
         }
     }
 }
+
 @Composable
 private fun BookmarkPlaceholderScreen() {
     Box(
@@ -375,6 +485,7 @@ private fun BookmarkPlaceholderScreen() {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeSettingsDialog(
@@ -405,7 +516,6 @@ private fun HomeSettingsDialog(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    // Bahasa
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             "Bahasa",
@@ -456,7 +566,6 @@ private fun HomeSettingsDialog(
                         }
                     }
 
-                    // Tema
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             "Tema",
@@ -507,7 +616,6 @@ private fun HomeSettingsDialog(
                         }
                     }
 
-                    // Ukuran Huruf Terjemahan
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             "Ukuran Huruf Terjemahan",
@@ -530,7 +638,6 @@ private fun HomeSettingsDialog(
                         )
                     }
 
-                    // Ukuran Huruf Arab
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             "Ukuran Huruf Arab",

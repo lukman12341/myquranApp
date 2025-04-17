@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.myq.data.model.Surah
+import com.example.myq.ui.theme.FontSettings
 import com.example.myq.ui.theme.ThemeState
 import com.example.myq.viewmodel.SurahViewModel
 
@@ -187,7 +188,7 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
                 }
 
                 when (selectedTabIndex) {
-                    0 -> SurahListScreen(navController, filteredList)
+                    0 -> SurahListScreen(navController, filteredList, FontSettings.translationFontSize, FontSettings.arabicFontSize)
                     1 -> JuzListScreen(navController)
                     2 -> BookmarkPlaceholderScreen()
                 }
@@ -198,17 +199,25 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
             showDialog = showSettingsDialog,
             currentLanguage = "id",
             currentTheme = if (isDarkTheme) "dark" else "light",
+            currentTranslationFontSize = FontSettings.translationFontSize,
+            currentArabicFontSize = FontSettings.arabicFontSize,
             onDismiss = { showSettingsDialog = false },
-            onConfirm = { lang, theme ->
+            onConfirm = { lang, theme, transFontSize, arabFontSize ->
                 ThemeState.toggleTheme(theme == "dark")
+                FontSettings.translationFontSize = transFontSize
+                FontSettings.arabicFontSize = arabFontSize
                 showSettingsDialog = false
             }
         )
     }
 }
-
 @Composable
-private fun SurahListScreen(navController: NavHostController, surahList: List<Surah>) {
+private fun SurahListScreen(
+    navController: NavHostController,
+    surahList: List<Surah>,
+    translationFontSize: Float,
+    arabicFontSize: Float
+) {
     if (surahList.isEmpty() && !isSystemInDarkTheme()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -222,14 +231,18 @@ private fun SurahListScreen(navController: NavHostController, surahList: List<Su
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(surahList) { surah ->
-                SurahItem(navController, surah)
+                SurahItem(navController, surah, translationFontSize, arabicFontSize)
             }
         }
     }
 }
-
 @Composable
-private fun SurahItem(navController: NavHostController, surah: Surah) {
+private fun SurahItem(
+    navController: NavHostController,
+    surah: Surah,
+    translationFontSize: Float,
+    arabicFontSize: Float
+) {
     var isPressed by remember { mutableStateOf(false) }
     val backgroundColor by animateColorAsState(
         targetValue = if (isPressed) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
@@ -300,7 +313,7 @@ private fun SurahItem(navController: NavHostController, surah: Surah) {
                     Text(
                         text = surah.englishNameTranslation,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
+                            fontSize = translationFontSize.sp, // Gunakan ukuran huruf terjemahan
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -311,7 +324,7 @@ private fun SurahItem(navController: NavHostController, surah: Surah) {
                 Text(
                     text = surah.name,
                     style = MaterialTheme.typography.titleLarge.copy(
-                        fontSize = 20.sp,
+                        fontSize = arabicFontSize.sp, // Gunakan ukuran huruf Arab
                         fontWeight = FontWeight.Medium
                     ),
                     textAlign = TextAlign.End,
@@ -336,7 +349,6 @@ private fun SurahItem(navController: NavHostController, surah: Surah) {
         }
     }
 }
-
 @Composable
 private fun BookmarkPlaceholderScreen() {
     Box(
@@ -363,18 +375,21 @@ private fun BookmarkPlaceholderScreen() {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeSettingsDialog(
     showDialog: Boolean,
     currentLanguage: String,
     currentTheme: String,
+    currentTranslationFontSize: Float,
+    currentArabicFontSize: Float,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (String, String, Float, Float) -> Unit
 ) {
     var selectedLanguage by remember { mutableStateOf(currentLanguage) }
     var selectedTheme by remember { mutableStateOf(currentTheme) }
+    var translationFontSize by remember { mutableStateOf(currentTranslationFontSize) }
+    var arabicFontSize by remember { mutableStateOf(currentArabicFontSize) }
 
     if (showDialog) {
         AlertDialog(
@@ -491,11 +506,60 @@ private fun HomeSettingsDialog(
                             }
                         }
                     }
+
+                    // Ukuran Huruf Terjemahan
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "Ukuran Huruf Terjemahan",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                        Slider(
+                            value = translationFontSize,
+                            onValueChange = { translationFontSize = it },
+                            valueRange = 12f..20f,
+                            steps = 7,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "${translationFontSize.toInt()} sp",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Ukuran Huruf Arab
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "Ukuran Huruf Arab",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                        Slider(
+                            value = arabicFontSize,
+                            onValueChange = { arabicFontSize = it },
+                            valueRange = 16f..28f,
+                            steps = 11,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            text = "${arabicFontSize.toInt()} sp",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = { onConfirm(selectedLanguage, selectedTheme); onDismiss() },
+                    onClick = {
+                        onConfirm(selectedLanguage, selectedTheme, translationFontSize, arabicFontSize)
+                        onDismiss()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),

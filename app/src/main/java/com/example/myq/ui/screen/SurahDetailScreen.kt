@@ -36,9 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myq.data.model.Ayah
 import com.example.myq.data.model.AyahTranslation
+import com.example.myq.ui.theme.FontSettings
 import com.example.myq.ui.theme.ThemeState
 import com.example.myq.viewmodel.SurahViewModel
 import kotlinx.coroutines.delay
@@ -177,14 +179,18 @@ fun AyahItem(
         ) {
             Text(
                 text = ayah.text,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = FontSettings.arabicFontSize.sp // Gunakan ukuran huruf Arab dari FontSettings
+                ),
                 textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = translation.text,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = FontSettings.translationFontSize.sp // Gunakan ukuran huruf terjemahan dari FontSettings
+                ),
                 textAlign = TextAlign.Start
             )
             Spacer(modifier = Modifier.height(8.dp))

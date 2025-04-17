@@ -10,8 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.myq.ui.theme.FontSettings
 import com.example.myq.viewmodel.SurahViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,8 +44,18 @@ fun SurahListScreen(
         ) {
             items(surahList) { surah ->
                 ListItem(
-                    headlineContent = { Text(surah.name) },
-                    supportingContent = { Text("${surah.englishName} - ${surah.englishNameTranslation}") },
+                    headlineContent = {
+                        Text(
+                            text = surah.name,
+                            style = TextStyle(fontSize = FontSettings.arabicFontSize.sp) // Gunakan ukuran huruf Arab
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            text = "${surah.englishName} - ${surah.englishNameTranslation}",
+                            style = TextStyle(fontSize = FontSettings.translationFontSize.sp) // Gunakan ukuran huruf terjemahan
+                        )
+                    },
                     modifier = Modifier.clickable {
                         navController.navigate("surahDetail/${surah.number}")
                     }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "961660361183",
+    "project_id": "myquraanapp",
+    "storage_bucket": "myquraanapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:961660361183:android:7f023856cfbe25b79c0c6a",
+        "android_client_info": {
+          "package_name": "com.example.myq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD52por79-jNTzOxEzFd1Z32leDCvtwMeA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

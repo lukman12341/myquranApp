@@ -9,9 +9,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -26,21 +28,22 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.myq.R
+import com.example.myq.data.auth.FirebaseAuthManager
 import com.example.myq.data.model.Surah
 import com.example.myq.ui.theme.FontSettings
 import com.example.myq.ui.theme.ThemeState
 import com.example.myq.viewmodel.SplashViewModel
 import com.example.myq.viewmodel.SurahViewModel
 import kotlinx.coroutines.delay
-import com.example.myq.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,9 +58,13 @@ fun HomeScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSettingsDialog by remember { mutableStateOf(false) }
     val isDarkTheme = ThemeState.isDarkTheme
-
     val surahList by surahViewModel.surahList.collectAsState()
     val showSplash by splashViewModel.showSplash.collectAsState()
+
+    // Fetch current user for profile indicator
+    val currentUser = FirebaseAuthManager.getCurrentUser()
+    val userInitials = currentUser?.displayName?.take(2)?.uppercase() ?:
+    currentUser?.email?.take(2)?.uppercase() ?: "?"
 
     val filteredList = if (searchQuery.isEmpty()) {
         surahList
@@ -71,7 +78,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         surahViewModel.fetchSurahList()
         if (showSplash) {
-            delay(2000) // Tampilkan splash screen selama 2 detik
+            delay(2000) // Show splash screen for 2 seconds
             splashViewModel.hideSplash()
         }
     }
@@ -164,6 +171,33 @@ fun HomeScreen(
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
+                            // Profile Indicator
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f))
+                                    .clickable {
+                                        navController.navigate("profile")
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (currentUser != null) {
+                                    Text(
+                                        text = userInitials,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountCircle,
+                                        contentDescription = "Profil",
+                                        tint = MaterialTheme.colorScheme.onPrimary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
                         }
                     )
                 }
@@ -233,12 +267,10 @@ fun HomeScreen(
 
 @Composable
 private fun SplashContent() {
-    // Animasi untuk fade-in dan skala
     val alphaAnimation = remember { Animatable(0f) }
     val scaleAnimation = remember { Animatable(0.5f) }
 
     LaunchedEffect(Unit) {
-        // Animasi alpha dari 0 ke 1 untuk fade-in
         alphaAnimation.animateTo(
             targetValue = 1f,
             animationSpec = tween(
@@ -246,7 +278,6 @@ private fun SplashContent() {
                 easing = LinearOutSlowInEasing
             )
         )
-        // Animasi skala dari 0.5 ke 1 untuk gambar
         scaleAnimation.animateTo(
             targetValue = 1f,
             animationSpec = spring(
@@ -274,7 +305,6 @@ private fun SplashContent() {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.padding(24.dp)
         ) {
-            // Gambar Al-Qur'an
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -294,7 +324,6 @@ private fun SplashContent() {
                 )
             }
 
-            // Judul Aplikasi
             Text(
                 text = "Al-Qur'an Indonesia",
                 style = MaterialTheme.typography.headlineLarge.copy(
@@ -304,7 +333,6 @@ private fun SplashContent() {
                 )
             )
 
-            // Subjudul atau tagline
             Text(
                 text = "Baca dan Pelajari Al-Qur'an",
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -314,7 +342,6 @@ private fun SplashContent() {
             )
         }
 
-        // Indikator pemuatan di bagian bawah
         CircularProgressIndicator(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -429,7 +456,7 @@ private fun SurahItem(
                         text = surah.englishNameTranslation,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = translationFontSize.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurface // Diperbaiki: Ganti onSurfaceVariant jadi onSurface
                         )
                     )
                 }
@@ -461,6 +488,35 @@ private fun SurahItem(
         if (isPressed) {
             delay(200)
             isPressed = false
+        }
+    }
+}
+@Composable
+private fun JuzListScreen(navController: NavHostController) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Book,
+                contentDescription = "Juz",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(48.dp)
+            )
+            Text(
+                text = "Daftar Juz",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+            Button(onClick = { navController.navigate("juz_list") }) {
+                Text("Lihat Daftar Juz")
+            }
         }
     }
 }

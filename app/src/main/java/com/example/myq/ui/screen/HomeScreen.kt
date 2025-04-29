@@ -37,13 +37,18 @@ import androidx.navigation.NavHostController
 import com.example.myq.data.model.Surah
 import com.example.myq.ui.theme.FontSettings
 import com.example.myq.ui.theme.ThemeState
+import com.example.myq.viewmodel.SplashViewModel
 import com.example.myq.viewmodel.SurahViewModel
 import kotlinx.coroutines.delay
 import com.example.myq.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = viewModel()) {
+fun HomeScreen(
+    navController: NavHostController,
+    surahViewModel: SurahViewModel = viewModel(),
+    splashViewModel: SplashViewModel = viewModel()
+) {
     val tabTitles = listOf("SURAH", "JUZ", "BOOKMARK")
     var selectedTabIndex by remember { mutableStateOf(0) }
     var isSearching by remember { mutableStateOf(false) }
@@ -51,8 +56,8 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
     var showSettingsDialog by remember { mutableStateOf(false) }
     val isDarkTheme = ThemeState.isDarkTheme
 
-    val surahList by viewModel.surahList.collectAsState()
-    var showSplash by remember { mutableStateOf(true) }
+    val surahList by surahViewModel.surahList.collectAsState()
+    val showSplash by splashViewModel.showSplash.collectAsState()
 
     val filteredList = if (searchQuery.isEmpty()) {
         surahList
@@ -64,10 +69,11 @@ fun HomeScreen(navController: NavHostController, viewModel: SurahViewModel = vie
     }
 
     LaunchedEffect(Unit) {
-        viewModel.fetchSurahList()
-        // Tampilkan splash screen selama 2 detik
-        delay(2000)
-        showSplash = false
+        surahViewModel.fetchSurahList()
+        if (showSplash) {
+            delay(2000) // Tampilkan splash screen selama 2 detik
+            splashViewModel.hideSplash()
+        }
     }
 
     MaterialTheme(

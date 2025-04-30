@@ -491,35 +491,6 @@ private fun SurahItem(
         }
     }
 }
-@Composable
-private fun JuzListScreen(navController: NavHostController) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Book,
-                contentDescription = "Juz",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(48.dp)
-            )
-            Text(
-                text = "Daftar Juz",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            )
-            Button(onClick = { navController.navigate("juz_list") }) {
-                Text("Lihat Daftar Juz")
-            }
-        }
-    }
-}
 
 @Composable
 private fun BookmarkPlaceholderScreen() {

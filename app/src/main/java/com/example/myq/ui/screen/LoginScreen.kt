@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +34,6 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    // Peluncur untuk Google Sign-In menggunakan IntentSenderRequest
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -44,7 +45,6 @@ fun LoginScreen(
         }
     }
 
-    // Navigasi ke beranda jika terautentikasi
     LaunchedEffect(authState) {
         if (authState is AuthViewModel.AuthState.Authenticated) {
             navController.navigate("home") {
@@ -58,29 +58,43 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.primaryContainer
+        ) {
+            // Gambar latar belakang masjid
+            Image(
+                painter = painterResource(id = R.drawable.img2),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Overlay gradasi ungu transparan
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f)
+                            )
                         )
                     )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
+            )
+
+            // Konten utama
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(24.dp)
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(24.dp)
             ) {
-                // Logo Aplikasi
                 Image(
                     painter = painterResource(id = R.drawable.img),
                     contentDescription = "Logo Aplikasi",
                     modifier = Modifier.size(100.dp)
                 )
 
-                // Judul Aplikasi
                 Text(
                     text = "Al-Qur'an Indonesia",
                     style = MaterialTheme.typography.headlineLarge.copy(
@@ -90,7 +104,6 @@ fun LoginScreen(
                     )
                 )
 
-                // Pesan Selamat Datang
                 Text(
                     text = "Masuk untuk melanjutkan",
                     style = MaterialTheme.typography.bodyLarge.copy(
@@ -99,7 +112,6 @@ fun LoginScreen(
                     )
                 )
 
-                // Tombol Masuk dengan Google
                 Button(
                     onClick = {
                         isLoading = true
@@ -137,7 +149,6 @@ fun LoginScreen(
                     }
                 }
 
-                // Pesan Kesalahan
                 errorMessage?.let {
                     Text(
                         text = it,

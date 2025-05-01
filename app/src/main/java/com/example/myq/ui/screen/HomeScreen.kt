@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import com.example.myq.R
 import com.example.myq.data.auth.FirebaseAuthManager
 import com.example.myq.data.model.Surah
@@ -171,7 +173,7 @@ fun HomeScreen(
                                     tint = MaterialTheme.colorScheme.onPrimary
                                 )
                             }
-                            // Profile Indicator
+                            // Profile Indicator with Google Profile Picture
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
@@ -183,12 +185,26 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (currentUser != null) {
-                                    Text(
-                                        text = userInitials,
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    val photoUrl = currentUser.photoUrl
+                                    if (photoUrl != null) {
+                                        AsyncImage(
+                                            model = photoUrl,
+                                            contentDescription = "Foto Profil",
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape),
+                                            contentScale = ContentScale.Crop,
+                                            error = painterResource(id = R.drawable.img3),
+                                            placeholder = painterResource(id = R.drawable.img3)
+                                        )
+                                    } else {
+                                        Text(
+                                            text = userInitials,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.AccountCircle,
@@ -290,20 +306,36 @@ private fun SplashContent() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.primaryContainer
+    ) {
+        // Gambar latar belakang (background masjid)
+        Image(
+            painter = painterResource(id = R.drawable.img2),
+            contentDescription = "Background Masjid",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Layer semi-transparan untuk gradasi dan keterbacaan teks
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                        )
                     )
                 )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
+        )
+
+        // Konten utama di atas background
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(24.dp)
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -323,6 +355,8 @@ private fun SplashContent() {
                         .clip(RoundedCornerShape(8.dp))
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = "Al-Qur'an Indonesia",
@@ -456,7 +490,7 @@ private fun SurahItem(
                         text = surah.englishNameTranslation,
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = translationFontSize.sp,
-                            color = MaterialTheme.colorScheme.onSurface // Diperbaiki: Ganti onSurfaceVariant jadi onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 }
